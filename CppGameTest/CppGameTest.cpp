@@ -68,9 +68,9 @@ int main()
 		if (lpConsoleScreenBufferInfo.dwSize.X == screenWidth && lpConsoleScreenBufferInfo.dwSize.Y == screenHeight) break;
 		else
 		{
-			SetConsoleTextAttribute(hConsole, FOREGROUND_RED | BACKGROUND_GREEN);
-			screen[lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y - 1] = '\0';
 			swprintf_s(screen, 100, L"Zły rozmiar konsoli. Wymagany: %i x %i", screenWidth, screenHeight);
+			// zamknięcie buffera znakiem terminacji stringa '\0'
+			screen[lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y - 1] = '\0';
 			WriteConsoleOutputCharacter(hConsole, screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
 		}
 	}
@@ -320,8 +320,7 @@ int main()
 					else lpAttribute[y * screenWidth + x] = 240;
 			}
 		}
-		// zamknięcie buffera znakiem terminacji stringa '\0'
-		screen[screenWidth * screenHeight - 1] = '\0';
+
 		// wypisywanie danych o grze.
 		swprintf_s(screen, 60, L"X=%2.2f, Y=%2.2f, A=%3.2f, FPS=%3.2f, Time=%3.2f\0", playerX, playerY, playerRot, 1.0f / deltaTime, runTime);
 
@@ -338,24 +337,30 @@ int main()
 		// rysowanie gracza na minimapie
 		screen[((int)playerX + 1) * screenWidth + (int)playerY] = L'O';
 
-		// 
+		// zamknięcie buffera znakiem terminacji stringa '\0'
 		screen[screenWidth * screenHeight - 1] = '\0';
+		// wpisanie bufferu ekranu bezpośrednio do konsoli
 		WriteConsoleOutputCharacter(hConsole, screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
+		// wpisanie bufferu stylu bezpośrednio do konsoli
 		WriteConsoleOutputAttribute(hConsole, lpAttribute, screenWidth * screenHeight, { 0,0 }, &dwBytesChanged);
 	}
 
+	// wyczyszczenie ekranu, ustawienie tła na czarne, liter na zielone
 	for (int i = 0; i < screenWidth * screenHeight; i++)
 	{
 		screen[i] = ' ';
 		lpAttribute[i] = 0x0000 | FOREGROUND_GREEN;
 	}
 
+	// wypisanie czasu, koniec gry
 	while (true)
 	{
-		screen[screenWidth * screenHeight - 1] = '\0';
 		swprintf_s(screen, 45, L"Kliknij 'ESC' aby zamknąć, czas: %5.2f", runTime);
+		// zamknięcie buffera znakiem terminacji stringa '\0'
+		screen[screenWidth * screenHeight - 1] = '\0';
 		WriteConsoleOutputCharacter(hConsole, screen, screenWidth* screenHeight, { 0,0 }, & dwBytesWritten);
 		WriteConsoleOutputAttribute(hConsole, lpAttribute, screenWidth* screenHeight, { 0,0 }, & dwBytesChanged);
+		// jeśli wciśnięto 'ESC', zakończ
 		if (GetAsyncKeyState(VK_ESCAPE) & 0x01)
 			break;
 	}
