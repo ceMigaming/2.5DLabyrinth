@@ -30,7 +30,13 @@ float renderDistance = 16.0f;
 // Czas od początku gry
 float runTime = 0.0f;
 
-// L'C' i L"string" <- wchar_t i wstring (dynamiczny ciąg wchar_t-ów)
+// Podstawowe zagadnienia:
+// DWORD, WORD i QWORD
+// https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
+// HANDLE
+// https://docs.microsoft.com/en-us/windows/console/getstdhandle
+// L'c' i L"string" <- wchar_t i wstring (dynamiczny ciąg wchar_t-ów)
+// https://docs.microsoft.com/en-us/windows/win32/sysinfo/registry-value-types
 
 int main()
 {
@@ -68,10 +74,10 @@ int main()
 		if (lpConsoleScreenBufferInfo.dwSize.X == screenWidth && lpConsoleScreenBufferInfo.dwSize.Y == screenHeight) break;
 		else
 		{
-			swprintf_s(screen, 100, L"Zły rozmiar konsoli. Wymagany: %i x %i", screenWidth, screenHeight);
+			swprintf_s(screen, 100, L"Zły rozmiar konsoli. Wymagany: %i x %i", lpConsoleScreenBufferInfo.dwSize.X, lpConsoleScreenBufferInfo.dwSize.Y);
 			// zamknięcie buffera znakiem terminacji stringa '\0'
 			screen[lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y - 1] = '\0';
-			WriteConsoleOutputCharacter(hConsole, screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
+			WriteConsoleOutputCharacter(hConsole, screen, lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y, { 0,0 }, &dwBytesWritten);
 		}
 	}
 	// mapa
