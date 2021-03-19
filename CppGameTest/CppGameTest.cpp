@@ -7,7 +7,7 @@
 #include <utility>		// pary
 #include <algorithm>	// sort
 #include <chrono>		// czas
-#include <Windows.h>	// dojście do konsoli, wypisywanie bufferu ekranu 
+#include <Windows.h>	// dojście do konsoli, wypisywanie bufferu ekranu
 #include <fstream>		// wczytywanie pliku
 #include <codecvt>		// formatowanie pliku w utf-16
 #include <string>		// sczytywanie wstringów z pliku
@@ -17,18 +17,18 @@ int screenHeight = 40;	// wysokość konsoli w komórkach
 int mapWidth = 16;		// szerokość mapy w kafelkach
 int mapHeight = 16;		// wysokość mapy w kafelkach
 
-float playerX = 1.5f;	// pozycja startowa gracza X
-float playerY = 13.5f;	// pozycja startowa gracza Y
-float playerRot = 0.0f; // startowa rotacja gracza
+float playerX = 1.5F;	// pozycja startowa gracza X
+float playerY = 13.5F;	// pozycja startowa gracza Y
+float playerRot = 0.0F; // startowa rotacja gracza
 
 // pole widzenia gracza
-float playerFOV = 3.14159f / 4.0f;
+float playerFOV = 3.14159F / 4.0F;
 // szybkość obrotu gracza
-float playerRotateSpeed = 5.0f;
+float playerRotateSpeed = 5.0F;
 // zasięg renderowania (maksymalna długość promienia)
-float renderDistance = 16.0f;
+float renderDistance = 16.0F;
 // Czas od początku gry
-float runTime = 0.0f;
+float runTime = 0.0F;
 
 // Podstawowe zagadnienia:
 // DWORD, WORD i QWORD
@@ -151,11 +151,11 @@ int main()
 
 		// obrót w lewo
 		if (GetAsyncKeyState((unsigned short)'A') & 0x8000)
-			playerRot -= (playerRotateSpeed * 0.75f) * deltaTime;
+			playerRot -= (playerRotateSpeed * 0.75F) * deltaTime;
 
 		// obrót w prawo
 		if (GetAsyncKeyState((unsigned short)'D') & 0x8000)
-			playerRot += (playerRotateSpeed * 0.75f) * deltaTime;
+			playerRot += (playerRotateSpeed * 0.75F) * deltaTime;
 
 		// chodzenie naprzód, sprawdzenie kolizji
 		if (GetAsyncKeyState((unsigned short)'W') & 0x8000)
@@ -181,17 +181,17 @@ int main()
 			}
 		}
 
-		// raycasting (śledzenie promieni, uproszczone raytracing)[https://pl.wikipedia.org/wiki/Ray_casting]
+		// raycasting (śledzenie promieni, uproszczony raytracing)[https://pl.wikipedia.org/wiki/Ray_casting]
 		for (int x = 0; x < screenWidth; x++)
 		{
 			// kąt promienia
-			float rayAngle = (playerRot - playerFOV / 2.0f) + ((float)x / (float)screenWidth) * playerFOV;
+			float rayAngle = (playerRot - playerFOV / 2.0F) + ((float)x / (float)screenWidth) * playerFOV;
 
 			// wielkość "kroku"
-			float fStepSize = 0.1f;
+			float fStepSize = 0.1F;
 
 			// długość promienia
-			float rayDistance = 0.0f;
+			float rayDistance = 0.0F;
 
 			// czy coś trafiliśmy
 			bool rayHit = false;
@@ -231,31 +231,31 @@ int main()
 						rayHit = true;
 						// tworzymy vector par, który będzie przechowywał dystans od elementu i iloczyn skalarny
 						std::vector<std::pair<float, float>> p;
+						// dodajemy wszystkie krawędzie ściany do vectora.
 						for (int tx = 0; tx < 2; tx++)
 							for (int ty = 0; ty < 2; ty++)
 							{
-								float vy = (float)nTestY + ty - playerY;		// wektor (fizyczny nie informatyczny) przechowujący odległość od gracza do krawędzi ściany (y)
-								float vx = (float)nTestX + tx - playerX;		// wektor (fizyczny nie informatyczny) przechowujący odległość od gracza do krawędzi ściany (x)
+								float vy = (float)nTestY + ty - playerY;		// składowa y wektora (fizycznego nie informatycznego) przechowujący odległość od gracza do krawędzi ściany
+								float vx = (float)nTestX + tx - playerX;		// składowa x wektora (fizycznego nie informatycznego) przechowujący odległość od gracza do krawędzi ściany
 								float d = sqrt(vx * vx + vy * vy);				// odległość od gracza do krawędzi w lini prostej
-								float dot = (fEyeX * vx / d) + (fEyeY * vy / d);// iloczyn skalarny
+								float dot = (fEyeX * vx / d) + (fEyeY * vy / d);// iloczyn skalarny (cosinus kąta między krawędzią a graczem)
 								p.push_back(std::make_pair(d, dot));			// wrzucamy całość na vectora (tym razem informatycznego)
 							}
 
-						// sortujemy wektor
+						// sortujemy wektor wg długości
 						sort(p.begin(), p.end(), [](const std::pair<float, float>& left, const std::pair<float, float>& right) {return left.first < right.first; });
 
 						// kąt (w radianach) przy jakim chcemy renderować krawędź ściany
-						float fBound = 0.005;
-						//jeśli najbliższa krawędź danej ściany jest widoczna pod kątem mniejszym niż podany, rysujemy ją na czarno
+						float fBound = 0.005F;
+						// wybieramy 2 najbliższe krawędzie i oznaczamy je do narysowania
 						if (acos(p.at(0).second) < fBound) hitBoundary = true;
 						if (acos(p.at(1).second) < fBound) hitBoundary = true;
-						if (acos(p.at(2).second) < fBound) hitBoundary = true;
 					}
 				}
 			}
 
 			// wysokość na jakiej rysujemy sufit / niebo
-			int nCeiling = (float)(screenHeight / 2.0) - screenHeight / ((float)rayDistance);
+			int nCeiling = (float)(screenHeight / 2.0F) - screenHeight / ((float)rayDistance);
 			//	-||-	-||-	-||-	podłogę
 			int nFloor = screenHeight - nCeiling;
 
@@ -308,7 +308,7 @@ int main()
 				// jeśli rysujemy podłogę
 				else
 				{
-					float b = 1.0f - (((float)y - screenHeight / 2.0f) / ((float)screenHeight / 2.0f));
+					float b = 1.0f - (((float)y - screenHeight / 2.0F) / ((float)screenHeight / 2.0F));
 					if (b < 0.25) { shadingChar = '#'; }
 					else if (b < 0.5) { shadingChar = 'x'; }
 					else if (b < 0.75) { shadingChar = '.'; }
@@ -367,7 +367,7 @@ int main()
 		WriteConsoleOutputCharacter(hConsole, screen, screenWidth* screenHeight, { 0,0 }, & dwBytesWritten);
 		WriteConsoleOutputAttribute(hConsole, lpAttribute, screenWidth* screenHeight, { 0,0 }, & dwBytesChanged);
 		// jeśli wciśnięto 'ESC', zakończ
-		if (GetAsyncKeyState(VK_ESCAPE) & 0x01)
+		if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
 			break;
 	}
 
