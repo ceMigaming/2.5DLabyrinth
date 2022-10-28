@@ -1,8 +1,10 @@
-﻿/* Oparte na filmach i repozytorium użytkownika javidx9 (OneLoneCoder)
-	Github: https://github.com/OneLoneCoder/CommandLineFPS
-	YouTube: https://www.youtube.com/watch?v=xW8skO7MFYw
-	Licencja GNU GPLv3: https://github.com/OneLoneCoder/videos/blob/master/LICENSE
+/*
+ *	Oparte na filmach i repozytorium użytkownika javidx9 (OneLoneCoder)
+ *	Github: https://github.com/OneLoneCoder/CommandLineFPS
+ *	YouTube: https://www.youtube.com/watch?v=xW8skO7MFYw
+ *	Licencja: https://github.com/OneLoneCoder/Javidx9/blob/master/LICENCE.md
 */
+
 #include <vector>		// vector
 #include <utility>		// pary
 #include <algorithm>	// sort
@@ -12,10 +14,10 @@
 #include <codecvt>		// formatowanie pliku w utf-16
 #include <string>		// sczytywanie wstringów z pliku
 
-int screenWidth = 120;	// szerokość konsoli w komórkach
-int screenHeight = 40;	// wysokość konsoli w komórkach
-int mapWidth = 16;		// szerokość mapy w kafelkach
-int mapHeight = 16;		// wysokość mapy w kafelkach
+short screenWidth = 120;	// szerokość konsoli w komórkach
+short screenHeight = 40;	// wysokość konsoli w komórkach
+short mapWidth = 16;		// szerokość mapy w kafelkach
+short mapHeight = 16;		// wysokość mapy w kafelkach
 
 float playerX = 1.5F;	// pozycja startowa gracza X
 float playerY = 13.5F;	// pozycja startowa gracza Y
@@ -60,75 +62,117 @@ int main()
 
 	// ustawienie trybu konsoli na ENABLE_VIRTUAL_TERMINAL_PROCESSING, czyli umożliwia wpisywanie bezpośrednio do bufferu ekranu i stylu
 	SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+	// wczytanie obecnych danych o konsoli
+	GetConsoleScreenBufferInfo(hConsole, &lpConsoleScreenBufferInfo);
+	// sprawdzanie, czy konsola ma wlasciwe wymiary
+	if (lpConsoleScreenBufferInfo.dwSize.X != screenWidth - 1 || lpConsoleScreenBufferInfo.dwSize.Y != screenHeight - 1)
+	{
+		COORD coord = {};
+		coord.X = screenWidth - 2;
+		coord.Y = screenHeight - 1;
 
-	// wypełnia buffer konsoli pustymi znakami
+		SetConsoleScreenBufferSize(hConsole, coord);
+	}
+
+	// wypełnienie bufferu konsoli pustymi znakami
 	for (int i = 0; i < screenWidth * screenHeight; i++)
 		screen[i] = L' ';
 
-	// sprawdzanie, czy konsola ma wlasciwe wymiary
-	while (true)
-	{
-		// sczytanie informacji o konsoli
-		GetConsoleScreenBufferInfo(hConsole, &lpConsoleScreenBufferInfo);
-		// sprawdzenie czy konsola ma odpowiednie rozmiary
-		if (lpConsoleScreenBufferInfo.dwSize.X == screenWidth && lpConsoleScreenBufferInfo.dwSize.Y == screenHeight) break;
-		else
-		{
-			swprintf_s(screen, 100, L"Zły rozmiar konsoli. Wymagany: %i x %i", lpConsoleScreenBufferInfo.dwSize.X, lpConsoleScreenBufferInfo.dwSize.Y);
-			// zamknięcie buffera znakiem terminacji stringa '\0'
-			screen[lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y - 1] = '\0';
-			WriteConsoleOutputCharacter(hConsole, screen, lpConsoleScreenBufferInfo.dwSize.X * lpConsoleScreenBufferInfo.dwSize.Y, { 0,0 }, &dwBytesWritten);
-		}
-	}
 	// mapa
 	std::wstring map;
 	// wczytanie mapy z pliku
 	std::wifstream wif("./map.txt", std::ios::binary); // wifstream zamiast ifstreamu, bo wczytuje wchar_t/wstring
-	// jeśli plik istnieje
-	if (wif.is_open())
-	{
-		// ustawienie formatowania na 'utf-16'
-		wif.imbue(std::locale(wif.getloc(), new std::codecvt_utf16<wchar_t, 0x10ffff, std::consume_header>));
 
-		// jedna linijka tekstu na raz
-		std::wstring wline;
-		// pozycja x w mapie
-		int x = 0;
-		// dopóki są kolejne linijki
-		while (std::getline(wif, wline))
+	bool tryAgain = true;
+	while (tryAgain) {
+		// jeśli plik istnieje
+		if (wif.is_open())
 		{
-			// y - pozycja y w mapie
-			for (int y = 0; y < wline.size(); y++)
+			// ustawienie formatowania na 'utf-16'
+			wif.imbue(std::locale(wif.getloc(), new std::codecvt_utf16<wchar_t, 0x10ffff, std::consume_header>));
+
+			// jedna linijka tekstu na raz
+			std::wstring wline;
+			// pozycja x w mapie
+			int x = 0;
+			// dopóki są kolejne linijki
+			while (std::getline(wif, wline))
 			{
-				// sczytanie z pliku jednego wchar_t
-				auto c = wline[y];
-				// sprawdzenie czy obecny i następny znak to L'/' i przestaje czytać linijkę, \
-					daje w ten sposób możliwość dodawania komentarzy do pliku "./map.txt".
-				if (c == '/' && wline[y + 1] == '/')
-					break;
-				// jeśli sczytany znak to znacznik gracza, ustawiam pozycje gracza na pozycję znaku w ciągu, następnie zastępujemy znak 'O' znakiem '.'
-				else if (c == 'O')
+				// y - pozycja y w mapie
+				for (int y = 0; y < wline.size(); y++)
 				{
-					playerY = y;
-					playerX = x-1;
-					map += L'.';
+					// sczytanie z pliku jednego wchar_t
+					auto c = wline[y];
+					// sprawdzenie czy obecny i następny znak to L'/' i przestaje czytać linijkę, 
+					// daje w ten sposób możliwość dodawania komentarzy do pliku "./map.txt".
+					if (c == '/' && wline[y + 1] == '/')
+						break;
+					// jeśli sczytany znak to znacznik gracza, ustawiam pozycje gracza na pozycję znaku w ciągu, następnie zastępujemy znak 'O' znakiem '.'
+					else if (c == 'O')
+					{
+						playerY = (float)y;
+						playerX = (float)x - 1.f;
+						map += L'.';
+					}
+					// jeśli sczytany tekst to \r nic nie dodajemy do ciągu z mapą, zwiększamy zmienną x
+					else if (c == '\r')
+					{
+						x++;
+						break;
+					}
+					// dopóki ciąg się nie skończy dodajemy znaki
+					else if (c != L'\0')
+						map += c;
 				}
-				// jeśli sczytany tekst to \r nic nie dodajemy do ciągu z mapą, zwiększamy zmienną x
-				else if (c == '\r')
-				{
-					x++;
-					break;
-				}
-				// dopóki ciąg się nie skończy dodajemy znaki
-				else if (c != L'\0')
-					map += c;
+			}
+
+			// zamknięcie strumienia czytania pliku
+			wif.close();
+		}
+		// jesli plik nie istnieje
+		else {
+			// wyświetlenie powiadomienie o brakującym pliku z poziomem
+			int msgboxID = MessageBox(
+				NULL,
+				(LPCWSTR)L"Nie znaleziono pliku \"map.txt\"\nCzy chcesz spróbować ponownie?",
+				(LPCWSTR)L"Nie znaleziono pliku \"map.txt\"",
+				MB_ICONWARNING | MB_ABORTRETRYIGNORE | MB_DEFBUTTON2
+			);
+			switch (msgboxID)
+			{
+				// jeśli użytkownik chce przerwać działanie programu
+			case IDABORT:
+				return -1;
+				// jeżeli użytkownik chce spróbować ponownie
+			case IDTRYAGAIN:
+				continue;
+				// jeżeli użytkownik chce zignorować ostrzeżenie o brakującym pliku
+			case IDIGNORE:
+				tryAgain = false;
+				// ustawienie domyslnej planszy
+				map =
+					L"################"
+					L"#.............X#"
+					L"##.#############"
+					L"#.........#....#"
+					L"#.#######.#.####"
+					L"#.#.....#.#....#"
+					L"#.#.#####.####.#"
+					L"#.#.......#....#"
+					L"###.#.#.#.#.##.#"
+					L"#.#.#..####.#.##"
+					L"#.#.#..#....#..#"
+					L"#.#.#..##.####.#"
+					L"#.#.#.....#....#"
+					L"#.#.#######....#"
+					L"#..............#"
+					L"################";
+				playerX = 1;
+				playerY = 13;
+				break;
 			}
 		}
-		
-		// zamknięcie strumienia czytania pliku
-		wif.close();
 	}
-
 	// zapisanie punktów czasowych
 	auto tp1 = std::chrono::system_clock::now();
 	auto tp2 = std::chrono::system_clock::now();
@@ -157,6 +201,9 @@ int main()
 		if (GetAsyncKeyState((unsigned short)'D') & 0x8000)
 			playerRot += (playerRotateSpeed * 0.75F) * deltaTime;
 
+		playerRot = remainder(playerRot, 2 * 3.14159F);
+
+
 		// chodzenie naprzód, sprawdzenie kolizji
 		if (GetAsyncKeyState((unsigned short)'W') & 0x8000)
 		{
@@ -182,7 +229,7 @@ int main()
 		}
 
 		// raycasting (śledzenie promieni, uproszczony raytracing)[https://pl.wikipedia.org/wiki/Ray_casting]
-		for (int x = 0; x < screenWidth; x++)
+		for (int x = 0; x <= screenWidth; x++)
 		{
 			// kąt promienia
 			float rayAngle = (playerRot - playerFOV / 2.0F) + ((float)x / (float)screenWidth) * playerFOV;
@@ -198,7 +245,7 @@ int main()
 			// czy trafiono krawędź
 			bool hitBoundary = false;
 			// trafiony znak
-			char rayOutput = ' ';
+			wchar_t rayOutput = ' ';
 
 			// składowa x kąta
 			float fEyeX = sinf(rayAngle);
@@ -223,9 +270,9 @@ int main()
 				else
 				{
 					// sprawdzamy jaki element znajduje się pod końcem promienia
-					rayOutput = map.c_str()[nTestX * mapWidth + nTestY];
+					rayOutput = map[nTestX * mapWidth + nTestY];
 					// jeśli ten element to ściana - # lub wyjście - X
-					if (rayOutput == '#' || rayOutput == 'X')
+					if (rayOutput == L'#' || rayOutput == L'X')
 					{
 						// trafiliśmy cel
 						rayHit = true;
@@ -255,7 +302,7 @@ int main()
 			}
 
 			// wysokość na jakiej rysujemy sufit / niebo
-			int nCeiling = (float)(screenHeight / 2.0F) - screenHeight / ((float)rayDistance);
+			int nCeiling = (int)((float)(screenHeight / 2.0F) - (float)screenHeight / ((float)rayDistance));
 			//	-||-	-||-	-||-	podłogę
 			int nFloor = screenHeight - nCeiling;
 
@@ -293,13 +340,13 @@ int main()
 				else if (y > nCeiling && y <= nFloor)
 				{
 					// ściana
-					if (rayOutput == '#')
+					if (rayOutput == L'#')
 					{
 						screen[y * screenWidth + x] = shadingChar;
 						lpAttribute[y * screenWidth + x] = nColor;
 					}
 					// wyjście
-					else if (rayOutput == 'X')
+					else if (rayOutput == L'X')
 					{
 						screen[y * screenWidth + x] = 'X';
 						lpAttribute[y * screenWidth + x] = 0x0000 | FOREGROUND_RED;
@@ -319,7 +366,7 @@ int main()
 				}
 
 				// rysowanie informacji o grze
-				if (y * screenWidth + x < 47)
+				if (y * screenWidth + x < 39)
 					// odwracanie kolorów, gdy jest taka potrzeba
 					if (lpAttribute[y * screenWidth + x] != 255)
 						lpAttribute[y * screenWidth + x] |= 0x000f; // negacja koloru
@@ -327,24 +374,25 @@ int main()
 			}
 		}
 
-		// wypisywanie danych o grze.
-		swprintf_s(screen, 60, L"X=%2.2f, Y=%2.2f, A=%3.2f, FPS=%3.2f, Time=%3.2f\0", playerX, playerY, playerRot, 1.0f / deltaTime, runTime);
+		swprintf_s(screen, 39, L"X=%02.0f, Y=%02.0f, A=%+03.2f, FPS=%03.0f, Time=%03.0f", min(playerX, 99), min(playerY, 99), playerRot, min(1.0f / deltaTime, 999.F), min(runTime, 999.F));
 
 		// wypisywanie minimapy
-		for (int nx = 0; nx < mapWidth; nx++)
-			for (int ny = 0; ny < mapWidth; ny++)
+		for (short nx = 0; nx < mapWidth; nx++)
+			for (short ny = 0; ny < mapHeight; ny++)
 			{
-				screen[(ny + 1) * screenWidth + nx] = map[ny * mapWidth + nx];
+				screen[(ny + 1) * screenWidth + nx + 1] = map[ny * mapWidth + nx];
 				// odwracanie kolorów, gdy jest taka potrzeba
-				if (lpAttribute[(ny + 1) * screenWidth + nx] != 255)
-					lpAttribute[(ny + 1) * screenWidth + nx] |= 0x000f;
-				else lpAttribute[(ny + 1) * screenWidth + nx] = 240;
+				if (lpAttribute[(ny + 1) * screenWidth + nx + 1] != (short)0x00ff)
+					lpAttribute[(ny + 1) * screenWidth + nx + 1] |= 0x000f;
+				else lpAttribute[(ny + 1) * screenWidth + nx + 1] = (short)0x00f0;
 			}
 		// rysowanie gracza na minimapie
 		screen[((int)playerX + 1) * screenWidth + (int)playerY] = L'O';
 
 		// zamknięcie buffera znakiem terminacji stringa '\0'
 		screen[screenWidth * screenHeight - 1] = '\0';
+		lpAttribute[screenWidth * screenHeight - 1] = '\0';
+
 		// wpisanie bufferu ekranu bezpośrednio do konsoli
 		WriteConsoleOutputCharacter(hConsole, screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
 		// wpisanie bufferu stylu bezpośrednio do konsoli
@@ -361,11 +409,12 @@ int main()
 	// wypisanie czasu, koniec gry
 	while (true)
 	{
-		swprintf_s(screen, 45, L"Kliknij 'ESC' aby zamknąć, czas: %5.2f", runTime);
+		swprintf_s(screen, 39, L"Kliknij 'ESC' aby zamknąć, czas: %5.2f", runTime);
 		// zamknięcie buffera znakiem terminacji stringa '\0'
 		screen[screenWidth * screenHeight - 1] = '\0';
-		WriteConsoleOutputCharacter(hConsole, screen, screenWidth* screenHeight, { 0,0 }, & dwBytesWritten);
-		WriteConsoleOutputAttribute(hConsole, lpAttribute, screenWidth* screenHeight, { 0,0 }, & dwBytesChanged);
+		lpAttribute[screenWidth * screenHeight - 1] = '\0';
+		WriteConsoleOutputCharacter(hConsole, screen, screenWidth * screenHeight, { 0,0 }, &dwBytesWritten);
+		WriteConsoleOutputAttribute(hConsole, lpAttribute, screenWidth * screenHeight, { 0,0 }, &dwBytesChanged);
 		// jeśli wciśnięto 'ESC', zakończ
 		if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
 			break;
